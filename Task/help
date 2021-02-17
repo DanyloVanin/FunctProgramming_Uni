@@ -1,0 +1,59 @@
+data Op    = Add | Sub | Mul
+data Expr  = Val Int | App Op Expr Expr
+type Result = (Expr,Int)
+instance Show Op where 
+  show Add = "+"
+  show Sub = "-"
+  show Mul = "*" 
+
+instance Show Expr where 
+  show (Val n) = show n 
+  show (App op e1 e2) = 
+              "(" ++ (show e1) ++ show op ++ show e2 ++ ")"
+
+results :: [Int] -> [Result] 
+results []  = [] 
+results [n] = [(Val n,n) | n>0]
+results ns  = [e | (ls,rs) <- splits ns,
+                          l <- results ls,
+                          r <- results rs,
+                          e <- combine1 l r ]
+
+solutions :: Int -> [Int] -> [Expr]
+solutions n ns = [e | ns1 <- choices ns, 
+                              (e,m) <- results ns1,
+                              m == n] 
+choices :: [a] -> [[a]] 
+choices xs = subsequences xs
+
+combine1 :: Result -> Result -> [Result]
+combine1 (l,x) (r,y) = [(App o l r, apply o x y) | o <- [Add,Sub,Mul], valid o x y]
+
+valid :: Op -> Int -> Int -> Bool 
+valid Sub x y = x > y
+valid _ _ _    = True
+
+apply :: Op -> Int -> Int -> Int
+apply Add v1 v2 = v1 + v2 
+apply Sub v1 v2 = v1 - v2
+apply Mul v1 v2 = v1 * v2
+
+---
+toDigits :: Int -> [Int]
+toDigits 0 = []
+toDigits num = (mod num 10)++(toDigits (div num 10))
+
+subsequences            :: [a] -> [[a]]
+subsequences xs         =  [] : nonEmptySubsequences xs
+
+nonEmptySubsequences         :: [a] -> [[a]]
+nonEmptySubsequences []      =  []
+nonEmptySubsequences (x:xs)  =  [x] : foldr f [] (nonEmptySubsequences xs)
+  where f ys r = ys : (x : ys) : r
+
+genExprBracket :: Int -> Int -> [String]
+genExprBracket a b = let digs = (toDigits a)
+					     res = 	results digs
+					     rightExpres = filter (\x -> (snd x)==b) res
+					     bracketView = map (\x -> show (fst x)) rightExpres
+					 in bracketView
